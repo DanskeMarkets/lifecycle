@@ -1,0 +1,96 @@
+plugins {
+	id 'java-library'
+	id 'io.freefair.lombok' version '5.2.1'
+	id 'maven-publish'
+	id 'signing'
+}
+
+targetCompatibility = JavaVersion.VERSION_1_10
+sourceCompatibility = JavaVersion.VERSION_1_10
+
+archivesBaseName    = 'lifecycle'
+group               = 'dk.danskebank.markets'
+version             = '0.0.1'
+
+repositories {
+	// Needed for the developer environment inside Danske Bank.
+	if (System.properties['inside'] == 'Danske') {
+		maven {
+			name = 'joined-gradle'
+			url artifactory_joinedUrl
+			credentials {
+				username = artifactory_user
+				password = artifactory_password
+			}
+		}
+	}
+
+	mavenCentral()
+}
+
+java {
+	withJavadocJar()
+	withSourcesJar()
+}
+
+artifacts {
+	archives javadocJar, sourcesJar
+}
+
+dependencies {
+	implementation     group: 'org.slf4j',         name: 'slf4j-api',     version: '1.7.30'
+	testImplementation group: 'org.slf4j',         name: 'slf4j-nop',     version: '1.7.30'
+	testImplementation group: 'org.mockito',       name: 'mockito-core',  version: '3.5.10'
+	testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter', version: '5.6.2'
+}
+
+publishing {
+	publications {
+		library(MavenPublication) {
+			from components.java
+
+			pom {
+				name        = 'Lifecycle'
+				description = 'Handle starting and shutting down components in a unified, safe way.'
+				url         = 'https://github.com/danskemarkets/lifecycle'
+
+				scm {
+					connection          = 'scm:git:git://github.com/danskemarkets/lifecycle'
+					developerConnection = 'scm:git:git://github.com/danskemarkets/lifecycle'
+					url                 = 'https://github.com/danskemarkets/lifecycle'
+				}
+
+				licenses {
+					license {
+						name = 'The MIT License'
+						url  = 'https://opensource.org/licenses/MIT'
+					}
+				}
+
+				developers {
+					developer {
+						id           = 'nisch'
+						name         = 'Nicholas Schultz-Møller'
+						email        = 'nisch@danskebank.dk'
+						organization = 'Danske Bank A/S'
+					}
+				}
+			}
+		}
+	}
+
+	repositories {
+		maven {
+			name = 'Sonatype'
+			url  = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+			credentials {
+				username = ossrhUsername
+				password = ossrhPassword
+			}
+		}
+	}
+}
+
+signing {
+	sign publishing.publications.library
+}
