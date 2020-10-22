@@ -27,7 +27,7 @@ To use this library, add it as a dependency (replace `x.y.z` with the newest ver
 
 **Gradle:**
 
-    implementation group: 'dk.danskebank.markets', name: 'event-router', version: 'x.y.z'
+    implementation group: 'dk.danskebank.markets', name: 'lifecycle', version: 'x.y.z'
 
 Any service participating in the orchestration needs to implement the `Lifecycle` interface:
 
