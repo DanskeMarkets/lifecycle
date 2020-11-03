@@ -10,7 +10,7 @@ sourceCompatibility = JavaVersion.VERSION_1_10
 
 archivesBaseName    = 'lifecycle'
 group               = 'dk.danskebank.markets'
-version             = '0.0.1'
+version             = '1.0.0'
 
 repositories {
 	// Needed for the developer environment inside Danske Bank.

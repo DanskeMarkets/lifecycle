@@ -97,11 +97,11 @@ public class Orchestration {
 			this.throwable = throwable;
 		}
 
-		public void start() {
+		private void start() {
 			concurrently("start", startThreads, startTimeoutMs);
 		}
 
-		public void shutdown() {
+		private void shutdown() {
 			concurrently("shut down", shutdownThreads, shutdownTimeoutMs);
 		}
 
