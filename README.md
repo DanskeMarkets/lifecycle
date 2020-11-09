@@ -13,6 +13,12 @@ What if some of your services can be started in parallel to speed up the startup
 
 This library handles all this complexity, so you don't have to.
 
+## Project Lifecycle
+
+If Danske Bank stops developing this project, it will be stated in this readme.
+While this project is actively developed, reported bugs, that are verified, will be fixed.
+Feature requests/pull requests will be accepted/rejected at Danske Bank's sole discretion without guarantees for any explanation.
+
 ## Guide
 
 To use this library, add it as a dependency (replace `x.y.z` with the newest version):
