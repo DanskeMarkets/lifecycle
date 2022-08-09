@@ -152,6 +152,10 @@ public class Orchestration {
 	}
 
 	public static class Builder {
+		private final static String NOT_CHAINED_CORRECTLY_MSG =
+				"Calls must be chained. Look in your code and see if you " +
+				"forgot to store a returned instance from the #then call.";
+
 		private final Set<Lifecycle> seenLifecycles = new HashSet<>();
 		private final List<Step> steps              = new ArrayList<>();
 
@@ -235,10 +239,7 @@ public class Orchestration {
 			}
 
 			private void checkThisIsNextInChainOrThrow() {
-				if (this != Builder.this.mustBeUsedInChain) {
-					throw new IllegalStateException("Calls must be chained. Look in your code and see if you " +
-							"forgot to store a returned instance from the #then call.");
-				}
+				if (this != Builder.this.mustBeUsedInChain) throw new IllegalStateException(NOT_CHAINED_CORRECTLY_MSG);
 			}
 		}
 
@@ -255,10 +256,7 @@ public class Orchestration {
 		}
 
 		private void checkChainedIsNullOrThrow() {
-			if (mustBeUsedInChain != null) {
-				throw new IllegalStateException("Calls must be chained. Look in your code and see if you " +
-						"forgot to store a returned instance from the #then call.");
-			}
+			if (mustBeUsedInChain != null) throw new IllegalStateException(NOT_CHAINED_CORRECTLY_MSG);
 		}
 
 		/**
