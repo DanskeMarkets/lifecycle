@@ -1,9 +1,6 @@
 package dk.danskebank.markets.lifecycle;
 
-import dk.danskebank.markets.lifecycle.helper.ServiceFailingOnShutdown;
-import dk.danskebank.markets.lifecycle.helper.ServiceFailingOnStartup;
-import dk.danskebank.markets.lifecycle.helper.ServiceNeverShuttingDown;
-import dk.danskebank.markets.lifecycle.helper.ServiceNeverStarting;
+import dk.danskebank.markets.lifecycle.helper.*;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,6 +25,64 @@ public class OrchestrationTest {
 						.andShutdownInReverseOrder()
 		);
 		assertEquals("Lifecycle already orchestrated: Service A", exception.getMessage());
+	}
+
+	@Test @DisplayName("should throw an IllegalStateException if #then calls are not chained correctly")
+	void notChainingThenCallsCorrectlyThrows() {
+		val exception = assertThrows(IllegalStateException.class, () -> {
+			val builder = Orchestration.firstStart(new Service());
+			builder.then(new Service()); // Here the object returned is thrown away and not used in the chain.
+			builder.then(new Service()); // Here we detect it and throw.
+		});
+		assertEquals("Calls must be chained. Look in your code and see if you " +
+				"forgot to store a returned instance from the #then call.", exception.getMessage());
+	}
+
+	@Test @DisplayName("should throw an IllegalStateException if #then calls are not chained correctly")
+	void notChainingThenCallsCorrectlyThrows2() {
+		val exception = assertThrows(IllegalStateException.class, () -> {
+			val builder = Orchestration.firstStart(new Service()).with(Duration.ofSeconds(2), Duration.ofSeconds(3));
+			builder.then(new Service()); // Here the object returned is thrown away and not used in the chain.
+			builder.then(new Service()); // Here we detect it and throw.
+		});
+		assertEquals("Calls must be chained. Look in your code and see if you " +
+				"forgot to store a returned instance from the #then call.", exception.getMessage());
+	}
+
+	@Test @DisplayName("should throw an IllegalStateException if #andShutdownInReverseOrder calls are not chained correctly")
+	void notChainingAndShutdownInReverseOrderCallsCorrectlyThrows() {
+		val exception = assertThrows(IllegalStateException.class, () -> {
+			val builder = Orchestration.firstStart(new Service());
+			builder.then(new Service());         // Here the object returned is not used in the chain.
+			builder.andShutdownInReverseOrder(); // Here we detect it and throw.
+		});
+		assertEquals("Calls must be chained. Look in your code and see if you " +
+				"forgot to store a returned instance from the #then call.", exception.getMessage());
+	}
+
+	@Test @DisplayName("should throw an IllegalStateException if #andShutdownInReverseOrder calls are not chained correctly")
+	void notChainingAndShutdownInReverseOrderCallsCorrectlyThrows2() {
+		val exception = assertThrows(IllegalStateException.class, () -> {
+			val builder = Orchestration.firstStart(new Service()).with(Duration.ofSeconds(2), Duration.ofSeconds(3));
+			builder.then(new Service());         // Here the object returned is not used in the chain.
+			builder.andShutdownInReverseOrder(); // Here we detect it and throw.
+		});
+		assertEquals("Calls must be chained. Look in your code and see if you " +
+				"forgot to store a returned instance from the #then call.", exception.getMessage());
+	}
+
+	@Test @DisplayName("should throw an IllegalStateException if calls are not chained correctly")
+	void withCallsNotChainedCorrectlyThrows() {
+		val service1 = new Service();
+		val service2 = new Service();
+
+		val exception = assertThrows(IllegalStateException.class, () -> {
+			val builder = Orchestration.firstStart(service1);
+			builder.then(service2);                                   // Here the object returned is not used in the chain.
+			builder.with(Duration.ofSeconds(2), Duration.ofSeconds(3)); // Here we detect it and throw.
+		});
+		assertEquals("Calls must be chained. Look in your code and see if you " +
+				"forgot to store a returned instance from the #then call.", exception.getMessage());
 	}
 
 	@Test @DisplayName("should stop starting Lifecycles and throw a RuntimeException if a Lifecycle throws an exception during start")

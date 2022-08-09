@@ -9,6 +9,10 @@ import lombok.ToString;
 public class Service implements Lifecycle {
 	private final double pnl;
 
+	public Service() {
+		this.pnl = 0.0;
+	}
+
 	@Override public void start() {
 		// Empty.
 	}

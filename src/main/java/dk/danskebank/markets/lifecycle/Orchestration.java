@@ -2,7 +2,7 @@ package dk.danskebank.markets.lifecycle;
 
 import lombok.NonNull;
 import lombok.Synchronized;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import lombok.val;
 
 import java.time.Duration;
@@ -10,7 +10,7 @@ import java.util.*;
 
 import static java.util.stream.Collectors.toList;
 
-@Slf4j
+@Log4j2
 public class Orchestration {
 	public final static Duration DEFAULT_START_TIMEOUT    = Duration.ofSeconds(60);
 	public final static Duration DEFAULT_SHUTDOWN_TIMEOUT = Duration.ofSeconds( 1);
@@ -152,9 +152,18 @@ public class Orchestration {
 	}
 
 	public static class Builder {
-		private final Set<Lifecycle> seenLifecycles = new HashSet<>();
+		private final static String NOT_CHAINED_CORRECTLY_MSG =
+				"Calls must be chained. Look in your code and see if you " +
+				"forgot to store a returned instance from the #then call.";
 
-		private final List<Step> steps = new ArrayList<>();
+		private final Set<Lifecycle> seenLifecycles = new HashSet<>();
+		private final List<Step> steps              = new ArrayList<>();
+
+		/**
+		 * Keep track of any intermediate object we returned to a user which he/she must
+		 * use when chaining the next call.
+		 */
+		private WithDefaultTimeout mustBeUsedInChain;
 
 		private Builder() {}
 
@@ -182,7 +191,7 @@ public class Orchestration {
 			 * @return A Builder for continued orchestration.
 			 */
 			public Builder with(@NonNull Duration startTimeout, @NonNull Duration shutdownTimeout) {
-				steps.add(new Step(currentLifeCycles, startTimeout, shutdownTimeout));
+				commitCurrentStep(startTimeout, shutdownTimeout);
 				return Builder.this;
 			}
 
@@ -193,8 +202,9 @@ public class Orchestration {
 			 * @return A builder object with default timeouts.
 			 */
 			public WithDefaultTimeout then(@NonNull Lifecycle service, Lifecycle... concurrentlyWith) {
-				commitCurrentLifecycles();
-				return new WithDefaultTimeout(listOf(service, concurrentlyWith));
+				commitCurrentStep();
+				Builder.this.mustBeUsedInChain = new WithDefaultTimeout(listOf(service, concurrentlyWith));
+				return Builder.this.mustBeUsedInChain;
 			}
 
 			/**
@@ -203,7 +213,7 @@ public class Orchestration {
 			 * @return An {@link Orchestration} that shuts down life cycles in the reverse order they were started.
 			 */
 			public Orchestration andShutdownInReverseOrder() {
-				commitCurrentLifecycles();
+				commitCurrentStep();
 				return Builder.this.andShutdownInReverseOrder();
 			}
 
@@ -213,12 +223,23 @@ public class Orchestration {
 			 * @return An {@link Orchestration} that shuts down life cycles in the same order they were started.
 			 */
 			public Orchestration andShutdownInSameOrder() {
-				commitCurrentLifecycles();
+				commitCurrentStep();
 				return Builder.this.andShutdownInSameOrder();
 			}
 
-			private void commitCurrentLifecycles() {
-				steps.add(new Step(currentLifeCycles, DEFAULT_START_TIMEOUT, DEFAULT_SHUTDOWN_TIMEOUT));
+			private void commitCurrentStep() {
+				commitCurrentStep(DEFAULT_START_TIMEOUT, DEFAULT_SHUTDOWN_TIMEOUT);
+			}
+
+			private void commitCurrentStep(Duration startTimeout, Duration shutdownTimeout) {
+				checkThisIsNextInChainOrThrow();
+				steps.add(new Step(currentLifeCycles, startTimeout, shutdownTimeout));
+				// We've been used correctly - reset.
+				Builder.this.mustBeUsedInChain = null;
+			}
+
+			private void checkThisIsNextInChainOrThrow() {
+				if (this != Builder.this.mustBeUsedInChain) throw new IllegalStateException(NOT_CHAINED_CORRECTLY_MSG);
 			}
 		}
 
@@ -229,7 +250,13 @@ public class Orchestration {
 		 * @return A builder object with default timeouts.
 		 */
 		public WithDefaultTimeout then(@NonNull Lifecycle service, Lifecycle... concurrentlyWith) {
-			return new WithDefaultTimeout(listOf(service, concurrentlyWith));
+			checkChainedIsNullOrThrow();
+			mustBeUsedInChain = new WithDefaultTimeout(listOf(service, concurrentlyWith));
+			return mustBeUsedInChain;
+		}
+
+		private void checkChainedIsNullOrThrow() {
+			if (mustBeUsedInChain != null) throw new IllegalStateException(NOT_CHAINED_CORRECTLY_MSG);
 		}
 
 		/**
@@ -238,6 +265,7 @@ public class Orchestration {
 		 * @return An {@link Orchestration} that shuts down life cycles in the reverse order they were started.
 		 */
 		public Orchestration andShutdownInReverseOrder() {
+			checkChainedIsNullOrThrow();
 			return new Orchestration(steps, true);
 		}
 
@@ -247,6 +275,7 @@ public class Orchestration {
 		 * @return An {@link Orchestration} that shuts down life cycles in the same order they were started.
 		 */
 		public Orchestration andShutdownInSameOrder() {
+			checkChainedIsNullOrThrow();
 			return new Orchestration(steps, false);
 		}
 	}
